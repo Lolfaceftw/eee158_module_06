@@ -326,17 +326,29 @@ static void PB_init(void) {
     EIC_SEC_REGS->EIC_DEBOUNCEN |= (1 << 2);
     EIC_SEC_REGS->EIC_CONFIG0 &= ~((uint32_t) (0xF) << 8);
     EIC_SEC_REGS->EIC_CONFIG0 |= ((uint32_t) (0xB) << 8);
+   
+    // For PA 19 (Output) or EXTINT[0]
     
-    EIC_SEC_REGS -> EIC_CONFIG0 |= (0x2 << 0); // Falling Edge Detection with Filter Enabled: EXTINT[7]
+    EIC_SEC_REGS -> EIC_CONFIG0 |= (0x2 << 0); // Falling Edge Detection with Filter Enabled: EXTINT[0]
     EIC_SEC_REGS -> EIC_CONFIG0 |= (1 << 3);
-    EIC_SEC_REGS -> EIC_DEBOUNCEN |= (1 << 0); // Debounce Enable for EXTINT[7]
-
+    EIC_SEC_REGS -> EIC_DEBOUNCEN |= (1 << 0); // Debounce Enable for EXTINT[0]
+    
+    
+    // For PA 18 (Input) or EXTINT[7]
+    /*
+    EIC_SEC_REGS -> EIC_CONFIG0 |= (0x2 << 28); // Falling Edge Detection with Filter Enabled: EXTINT[7]
+    EIC_SEC_REGS -> EIC_CONFIG0 |= (1 << 31);
+    EIC_SEC_REGS -> EIC_DEBOUNCEN |= (1 << 7); // Debounce Enable for EXTINT[7]
+    */
     /*
      * NOTE: Even though interrupts are enabled here, global interrupts
      *       still need to be enabled via NVIC.
      */
     EIC_SEC_REGS->EIC_INTENSET |= (1 << 2);
+    /* PA19 - EXTINT[0] */
     EIC_SEC_REGS->EIC_INTENSET |= (1 << 0);
+    /* PA18 - EXTINT[7] */
+    //EIC_SEC_REGS->EIC_INTENSET |= (1 << 7);
     return;
 }
 
@@ -364,10 +376,16 @@ static void NVIC_init(void) {
      */
     __DMB();
     __enable_irq();
-    NVIC_SetPriority(EIC_EXTINT_0_IRQn, 3); // Set priority for EXTINT0 to 3
-    NVIC_EnableIRQ(EIC_EXTINT_0_IRQn); // Enables EXTINT0
+    /* EXTINT[7] for PA 18 as Input */
+    //NVIC_SetPriority(EIC_EXTINT_7_IRQn, 3); 
+    /* EXTINT[0] for PA 19 as Output */
+    NVIC_SetPriority(EIC_EXTINT_0_IRQn, 3); 
     NVIC_SetPriority(EIC_EXTINT_2_IRQn, 3);
     NVIC_SetPriority(SysTick_IRQn, 3);
+    /* EXTINT[7] for PA 18 as Input */
+    //NVIC_EnableIRQ(EIC_EXTINT_7_IRQn); 
+    /* EXTINT[0] for PA 19 as Output */
+    NVIC_EnableIRQ(EIC_EXTINT_0_IRQn); 
     NVIC_EnableIRQ(EIC_EXTINT_2_IRQn);
     NVIC_EnableIRQ(SysTick_IRQn);
     return;
@@ -399,10 +417,18 @@ void platform_init(void) {
     return;
 }
 
+/* EXTINT[7] Handler for PA 18 (Input) */
+/*
+void __attribute__((interrupt())) EIC_EXTINT_7_Handler(void) {
+    EIC_SEC_REGS->EIC_INTFLAG |= (1 << 7);
+    for (;;){}
+    
+}
+*/
+
+/* EXTINT[0] Handler for PA 19 (Output) */
+
 void __attribute__((interrupt())) EIC_EXTINT_0_Handler(void) {
-    /*
-     * Handler for SW1 or PA00
-     */
     EIC_SEC_REGS->EIC_INTFLAG |= (1 << 0);
     for (;;){}
     
@@ -411,15 +437,18 @@ void __attribute__((interrupt())) EIC_EXTINT_0_Handler(void) {
 void Emergency_Pins_Init(void){
     /* PA 19 as Output with Input Enabled */
     PORT_SEC_REGS -> GROUP[0].PORT_DIRSET |= (1 << 19);
-    PORT_SEC_REGS -> GROUP[0].PORT_PINCFG[19] |= (0x1 << 0);
+    PORT_SEC_REGS -> GROUP[0].PORT_OUTSET |= (1 << 19);
+    PORT_SEC_REGS -> GROUP[0].PORT_PINCFG[19] |= (0x3 << 0); // 1 PULLEN 1 PMUXEN
     // Enable EIC Peripheral
     PORT_SEC_REGS -> GROUP[0].PORT_PMUX[9] |= (0x0 << 4);
     
     /* PA 18 as Input; Pull-Down
      * We shall set EIC to falling edge detection. So when PA18 is disconnected, it is active-LO.
+     * Pull-Down Config: DIR 0; INEN 1; PULLEN 1; OUT 0
      */
     PORT_SEC_REGS -> GROUP[0].PORT_DIRSET |= (0 << 18);
-    PORT_SEC_REGS -> GROUP[0].PORT_PINCFG[18] |= (0x7 << 0);
+    PORT_SEC_REGS -> GROUP[0].PORT_OUTSET |= (0 << 18); // Set Output to 0 for Pull-Down.
+    PORT_SEC_REGS -> GROUP[0].PORT_PINCFG[18] |= (0x7 << 0); // 1 INEN 1 PULLEN 1 PMUXEN
     PORT_SEC_REGS -> GROUP[0].PORT_PMUX[9] |= (0x0 << 0);
     
 }
