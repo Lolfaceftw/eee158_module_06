@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
-  <executable name="dist/default/debug/eee158_mp2_new.X.debug.elf">
+  <executable name="dist/default/production/eee158_mp2_new.X.production.elf">
     <memory name="program">
       <units>bytes</units>
       <length>262144</length>

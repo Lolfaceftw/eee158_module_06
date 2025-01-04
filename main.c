@@ -29,6 +29,7 @@
 #define HOME_KEY 0x1B    // ASCII for Home key
 #define CTRL_E 0x05     // ASCII for CTRL+E
 
+volatile int ignore_all = 0;
 int ready_to_exit = 0;
 int emergency_stop = 0;
 static const char banner_msg[] =
@@ -174,39 +175,54 @@ static void prog_loop_one(prog_state_t *ps) {
         platform_usart_cdc_tx_async(&ps->tx_desc[0], 1);
         init = 1;
     }
-    // Something happened to the pushbutton?
-    if ((a = platform_pb_get_event()) != 0) {
-        if ((a & PLATFORM_PB_ONBOARD_PRESS) != 0) {
-            ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
-            ps->tx_desc[0].len = sizeof (ESC_SEQ_BUTTON_POS) - 1;
-            ps->tx_desc[1].buf = BUTTON_PRESSED;
-            ps->tx_desc[1].len = sizeof (BUTTON_PRESSED) - 1;
-            platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
-            if (ready_to_exit == 1){
-                emergency_stop = 0;
-                ready_to_exit = 0;
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR |= (1 << 1);
-                
+    if (ignore_all == 1) {
+        //for(;;){}
+        // Something from the UART?
+        if (ps->rx_desc.compl_type == PLATFORM_USART_RX_COMPL_DATA) {
+
+            char received_char = ps->rx_desc_buf[0];
+            if (received_char == CTRL_E || (received_char == 0x1B && ps -> rx_desc_buf[2] == 0x48)) {
+
+                ps->flags |= PROG_FLAG_BANNER_PENDING;
+            } else {
+                ps->flags |= PROG_FLAG_UPDATE_PENDING;
             }
-        } else if ((a & PLATFORM_PB_ONBOARD_RELEASE) != 0) {
-            ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
-            ps->tx_desc[0].len = sizeof (ESC_SEQ_BUTTON_POS) - 1;
-            ps->tx_desc[1].buf = BUTTON_RELEASED;
-            ps->tx_desc[1].len = sizeof (BUTTON_RELEASED) - 1;
-            platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
+            ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
         }
-    }
+    } else if (ignore_all == 0) {
+        // Something happened to the pushbutton?
+        if ((a = platform_pb_get_event()) != 0) {
+            if ((a & PLATFORM_PB_ONBOARD_PRESS) != 0) {
+                ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
+                ps->tx_desc[0].len = sizeof (ESC_SEQ_BUTTON_POS) - 1;
+                ps->tx_desc[1].buf = BUTTON_PRESSED;
+                ps->tx_desc[1].len = sizeof (BUTTON_PRESSED) - 1;
+                platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
+                if (ready_to_exit == 1) {
+                    emergency_stop = 0;
+                    ready_to_exit = 0;
+                    PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR |= (1 << 1);
 
-    // Something from the UART?
-    if (ps->rx_desc.compl_type == PLATFORM_USART_RX_COMPL_DATA) {
-        char received_char = ps->rx_desc_buf[0];
-
-        if (received_char == CTRL_E || (received_char == 0x1B && ps -> rx_desc_buf[2] == 0x48)) {
-            ps->flags |= PROG_FLAG_BANNER_PENDING;
-        } else {
-            ps->flags |= PROG_FLAG_UPDATE_PENDING;
+                }
+            } else if ((a & PLATFORM_PB_ONBOARD_RELEASE) != 0) {
+                ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
+                ps->tx_desc[0].len = sizeof (ESC_SEQ_BUTTON_POS) - 1;
+                ps->tx_desc[1].buf = BUTTON_RELEASED;
+                ps->tx_desc[1].len = sizeof (BUTTON_RELEASED) - 1;
+                platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
+            }
         }
-        ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
+        // Something from the UART?
+        if (ps->rx_desc.compl_type == PLATFORM_USART_RX_COMPL_DATA) {
+            char received_char = ps->rx_desc_buf[0];
+
+            if (received_char == CTRL_E || (received_char == 0x1B && ps -> rx_desc_buf[2] == 0x48)) {
+                ps->flags |= PROG_FLAG_BANNER_PENDING;
+            } else {
+                ps->flags |= PROG_FLAG_UPDATE_PENDING;
+            }
+            ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
+        }
     }
 
 
@@ -248,35 +264,38 @@ static void prog_loop_one(prog_state_t *ps) {
             // Message has not been generated.
 
             // Echo back the received packet as a hex dump.
-            char received_char = ps->rx_desc_buf[0];
-            if (received_char == '\033') {
-                // Escape sequence detected, could be an arrow key
-                if (ps->rx_desc_buf[1] == '[') {
-                    switch (ps->rx_desc_buf[2]) {
-                        case 'D': // Left arrow
-                            TC0_REGS -> COUNT16.TC_COUNT = 0;
-                            updateBlinkSetting(ps, false);
-                            break;
-                        case 'C': // Right arrow
-                            TC0_REGS -> COUNT16.TC_COUNT = 0;
-                            updateBlinkSetting(ps, true);
-                            break;
+            if (ignore_all == 0) {
+                char received_char = ps->rx_desc_buf[0];
+                if (received_char == '\033') {
+                    // Escape sequence detected, could be an arrow key
+                    if (ps->rx_desc_buf[1] == '[') {
+                        switch (ps->rx_desc_buf[2]) {
+                            case 'D': // Left arrow
+                                TC0_REGS -> COUNT16.TC_COUNT = 0;
+                                updateBlinkSetting(ps, false);
+                                break;
+                            case 'C': // Right arrow
+                                TC0_REGS -> COUNT16.TC_COUNT = 0;
+                                updateBlinkSetting(ps, true);
+                                break;
+                        }
                     }
+                } else if (received_char == 0x61 || received_char == 0x41) {
+                    TC0_REGS -> COUNT16.TC_COUNT = 0;
+                    while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 4));
+                    updateBlinkSetting(ps, false);
+                } else if (received_char == 'D' || received_char == 'd') {
+                    TC0_REGS -> COUNT16.TC_COUNT = 0;
+                    while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 4));
+                    updateBlinkSetting(ps, true);
+                } else {
+                    // Handle other inputs as before
+                    ps->flags |= PROG_FLAG_UPDATE_PENDING;
+                    ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
                 }
-            } else if (received_char == 0x61 || received_char == 0x41) {
-                TC0_REGS -> COUNT16.TC_COUNT = 0;
-                while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 4));
-                updateBlinkSetting(ps, false);
-            } else if (received_char == 'D' || received_char == 'd') {
-                TC0_REGS -> COUNT16.TC_COUNT = 0;
-                while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 4));
-                updateBlinkSetting(ps, true);
-            } else {
-                // Handle other inputs as before
-                ps->flags |= PROG_FLAG_UPDATE_PENDING;
-                ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
             }
-
+            ps->flags |= PROG_FLAG_UPDATE_PENDING;
+            ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
             // Reset receive buffer and wait for completion
             while (platform_usart_cdc_tx_busy()) {
                 platform_do_loop_one();
