@@ -98,4 +98,28 @@ void TC0_Init(void) {
     TC0_REGS -> COUNT16.TC_CTRLA |= (1 << 1); // Enable TC0 Peripheral Bit 1
 }
 
+void TCC3_Init(void) {
+    GCLK_REGS -> GCLK_PCHCTRL[27] = 0x00000040;
+    while ((GCLK_REGS -> GCLK_PCHCTRL [27] & 0x00000040) == 0); // Wait for synchronization
+
+    /* Reset TCC */
+    TCC3_REGS->TCC_CTRLA |= 0x01; // Set SWRST bit to 1 to reset
+    while (TCC3_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
+
+    /* Clock Prescaler and Mode */
+    TCC3_REGS->TCC_CTRLA |= (1 << 12) | (7 << 8); // Precsync = PRESC | Prescaler = 1024
+    while (TCC3_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
+
+    TCC3_REGS->TCC_WEXCTRL |= TCC_WEXCTRL_OTMX(0UL); // Default configuration
+    TCC3_REGS->TCC_WAVE |= (2 << 0) | (0 << 4) | (1 << 17) | (1 << 16) | (1 << 19); // 0x2 NPWM Normal PWM PER TOP/Zero or Single slope PWM
+    while (TCC3_REGS->TCC_SYNCBUSY & ~(1 << 6)); // Wait for synchronization
+    // RAMP 1 operation (Polarity 1) - bit 16, set at CCx, clear at TOP 
+
+    /* Configure duty cycle values */
+
+
+    /* TCC enable */
+    TCC3_REGS->TCC_CTRLA |= (1 << 1); // Enables TCC
+    while (TCC3_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
+}
 #endif CLK_H

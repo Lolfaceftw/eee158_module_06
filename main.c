@@ -30,8 +30,16 @@
 #define CTRL_E 0x05     // ASCII for CTRL+E
 
 volatile int ignore_all = 0;
-int ready_to_exit = 0;
+volatile int reset_timer = 1;
+volatile int ready_to_exit = 0;
 int emergency_stop = 0;
+
+int tcc3_read(void) {
+    TCC3_REGS -> TCC_CTRLBSET |= (0x4 << 5);
+    while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 4));
+    return TCC3_REGS -> TCC_COUNT;
+}
+
 static const char banner_msg[] =
         "\033[1;1H"
         "+--------------------------------------------------------------------+\r\n"
@@ -189,7 +197,8 @@ static void prog_loop_one(prog_state_t *ps) {
             }
             ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
         }
-    } else if (ignore_all == 0) {
+    } if (ignore_all == 0 || ready_to_exit == 1) {
+
         // Something happened to the pushbutton?
         if ((a = platform_pb_get_event()) != 0) {
             if ((a & PLATFORM_PB_ONBOARD_PRESS) != 0) {
@@ -198,11 +207,9 @@ static void prog_loop_one(prog_state_t *ps) {
                 ps->tx_desc[1].buf = BUTTON_PRESSED;
                 ps->tx_desc[1].len = sizeof (BUTTON_PRESSED) - 1;
                 platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
-                if (ready_to_exit == 1) {
-                    emergency_stop = 0;
+                if (ready_to_exit == 1){
                     ready_to_exit = 0;
-                    PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR |= (1 << 1);
-
+                    ignore_all = 0;
                 }
             } else if ((a & PLATFORM_PB_ONBOARD_RELEASE) != 0) {
                 ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
@@ -213,7 +220,7 @@ static void prog_loop_one(prog_state_t *ps) {
             }
         }
         // Something from the UART?
-        if (ps->rx_desc.compl_type == PLATFORM_USART_RX_COMPL_DATA) {
+        if (ps->rx_desc.compl_type == PLATFORM_USART_RX_COMPL_DATA && ready_to_exit == 0) {
             char received_char = ps->rx_desc_buf[0];
 
             if (received_char == CTRL_E || (received_char == 0x1B && ps -> rx_desc_buf[2] == 0x48)) {
@@ -225,6 +232,22 @@ static void prog_loop_one(prog_state_t *ps) {
         }
     }
 
+    if (reset_timer == 0) {
+        TCC3_REGS->TCC_PER = 93750; // Set the period value
+        while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 7));
+
+        if (tcc3_read() >= TCC3_REGS -> TCC_PER) {
+            PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 1);
+            ready_to_exit = 1;
+        }
+    } else {
+        TCC3_REGS -> TCC_CTRLBSET |= (0x1 << 5);
+        while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 2)); // Wait for CMD Synchronization.
+        while ((TCC3_REGS -> TCC_CTRLBSET) |= (0 << 5)); // Wait for CMD read back as zero.
+
+        TCC3_REGS -> TCC_COUNT = 0; // Reset counter to zero.
+        while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 4)); // This register is write-synchronized.
+    }
 
     ////////////////////////////////////////////////////////////////////
 

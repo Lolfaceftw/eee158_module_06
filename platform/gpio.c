@@ -201,6 +201,7 @@ void platform_init(void) {
 
     // Regular initialization
     TC0_Init();
+    TCC3_Init();
     PB_init();
     PA1_Debug_Init();
     Emergency_Pins_Init();

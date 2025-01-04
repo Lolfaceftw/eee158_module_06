@@ -1,6 +1,7 @@
 #ifndef EIC_H
 #define EIC_H
 extern ignore_all;
+extern reset_timer;
 /*
  * Configure the EIC peripheral
  * 
@@ -132,6 +133,7 @@ void NVIC_init(void) {
     NVIC_EnableIRQ(SysTick_IRQn);
     return;
 }
+
 volatile int toggle = 0;
 void __attribute__((interrupt())) EIC_EXTINT_7_Handler(void) {
     EIC_SEC_REGS->EIC_INTFLAG |= (1 << 7);
@@ -139,14 +141,15 @@ void __attribute__((interrupt())) EIC_EXTINT_7_Handler(void) {
     if (toggle == 0){
         // Ignore all commands
         ignore_all = 1;
-        
+        reset_timer = 1;
         PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 1); // Turn PA 01 Off
         toggle = 1;
     } else if (toggle == 1) {
         // Wait 4 seconds
+        reset_timer = 0;
         // Wait onboard push button
         PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 1); // Turn PA 01 Off
-        ignore_all = 0;
+        //ignore_all = 0;
         toggle = 0;
     }
     
