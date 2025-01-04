@@ -1,7 +1,7 @@
 Archive member included to satisfy reference by file (symbol)
 
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libpic32c.a(data_init.o)
-                              C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o (__pic32c_data_initialization)
+                              C:\Users\chris\AppData\Local\Temp\ccKbezST.o (__pic32c_data_initialization)
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-size-musl.a(memset.o)
                               build/default/production/platform/usart.o (memset)
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-size-musl.a(strlen.o)
@@ -17,7 +17,7 @@ c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../.
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libm-fast-emfloat.a(__aeabi_ui2d.o)
                               c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libm-fast-emfloat.a(__aeabi_i2d.o) (__aeabi_ui2d)
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-musl.a(__libc_start_main.o)
-                              C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o (__libc_init_array)
+                              C:\Users\chris\AppData\Local\Temp\ccKbezST.o (__libc_init_array)
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-musl.a(libc.o)
                               c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-musl.a(__libc_start_main.o) (__progname_full)
 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-musl.a(__environ.o)
@@ -101,7 +101,7 @@ Microchip PIC32 Memory-Usage Report By Module
         2344           4           2        2350         92e    gpio.o                 build/default/production/platform/gpio.o
         1748           0          44        1792         700    usart.o                build/default/production/platform/usart.o
          814           0          12         826         33a    systick.o              build/default/production/platform/systick.o
-         476           0           0         476         1dc    ccIBBYKM.o             C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+         476           0           0         476         1dc    ccKbezST.o             C:\Users\chris\AppData\Local\Temp\ccKbezST.o
          390           0           0         390         186    __aeabi_dmul_aux.o     libm-fast-emfloat.a
          192           0           0         192          c0    data_init              data_init
           72           4          28         104          68    crtbegin.o             c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/thumb/v8-m.base/nofp/crtbegin.o
@@ -213,7 +213,7 @@ LOAD build/default/production/platform/systick.o
 LOAD build/default/production/platform/usart.o
 LOAD build/default/production/main.o
                 0x0000000000000001                __MPLAB_BUILD = 0x1
-LOAD C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+LOAD C:\Users\chris\AppData\Local\Temp\ccKbezST.o
 START GROUP
 LOAD c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libpic32c.a
 LOAD c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-size-musl.a
@@ -263,7 +263,7 @@ LOAD c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/th
                 0x0000000000000000                _sfixed = .
  *(.vectors .vectors.* .vectors_default .vectors_default.*)
  .vectors.default
-                0x0000000000000000      0x15c C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+                0x0000000000000000      0x15c C:\Users\chris\AppData\Local\Temp\ccKbezST.o
                 0x0000000000000000                exception_table
  *(.isr_vector)
  *(.reset*)
@@ -360,7 +360,7 @@ LOAD stack
  .ARM.attributes
                 0x00000000000000e2       0x30 build/default/production/main.o
  .ARM.attributes
-                0x0000000000000112       0x30 C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+                0x0000000000000112       0x30 C:\Users\chris\AppData\Local\Temp\ccKbezST.o
  .ARM.attributes
                 0x0000000000000142       0x30 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libpic32c.a(data_init.o)
  .ARM.attributes
@@ -399,7 +399,7 @@ LOAD stack
  .comment       0x000000000000002b       0x2c build/default/production/platform/systick.o
  .comment       0x000000000000002b       0x2c build/default/production/platform/usart.o
  .comment       0x000000000000002b       0x2c build/default/production/main.o
- .comment       0x000000000000002b       0x2c C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+ .comment       0x000000000000002b       0x2c C:\Users\chris\AppData\Local\Temp\ccKbezST.o
  .comment       0x000000000000002b       0x2c c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libpic32c.a(data_init.o)
  .comment       0x000000000000002b       0x2c c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-size-musl.a(memset.o)
  .comment       0x000000000000002b       0x2c c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-size-musl.a(strlen.o)
@@ -598,7 +598,7 @@ LOAD stack
  .bss           0x0000000000000000        0x0 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libc-size-musl.a(memset.o)
 
 .bss%z8         0x0000000000000000        0x0
- .bss           0x0000000000000000        0x0 C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+ .bss           0x0000000000000000        0x0 C:\Users\chris\AppData\Local\Temp\ccKbezST.o
 
 .bss%z9         0x0000000000000000        0x0
  .bss           0x0000000000000000        0x0 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/thumb/v8-m.base/nofp/crti.o
@@ -649,7 +649,7 @@ LOAD stack
  .data          0x0000000000000000        0x0 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libpic32c.a(data_init.o)
 
 .data%z20       0x0000000000000000        0x0
- .data          0x0000000000000000        0x0 C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+ .data          0x0000000000000000        0x0 C:\Users\chris\AppData\Local\Temp\ccKbezST.o
 
 .data%z21       0x0000000000000000        0x0
  .data          0x0000000000000000        0x0 build/default/production/platform/usart.o
@@ -714,7 +714,7 @@ LOAD stack
 .text.Reset_Handler%20
                 0x00000000000021f8       0x7e
  .text.Reset_Handler
-                0x00000000000021f8       0x7e C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+                0x00000000000021f8       0x7e C:\Users\chris\AppData\Local\Temp\ccKbezST.o
                 0x00000000000021f8                Reset_Handler
 
 .text.__libc_start_init%21
@@ -797,7 +797,7 @@ LOAD stack
 .text.Dummy_Handler%35
                 0x0000000000002276        0x2
  .text.Dummy_Handler
-                0x0000000000002276        0x2 C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+                0x0000000000002276        0x2 C:\Users\chris\AppData\Local\Temp\ccKbezST.o
                 0x0000000000002276                SVCall_Handler
                 0x0000000000002276                SERCOM0_2_Handler
                 0x0000000000002276                EVSYS_0_Handler
@@ -911,7 +911,7 @@ LOAD stack
  .text          0x0000000000000000        0x0 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/../../../../pic32c/lib/thumb/v8-m.base/nofp\libpic32c.a(data_init.o)
 
 .text%z35       0x0000000000000000        0x0
- .text          0x0000000000000000        0x0 C:\Users\chris\AppData\Local\Temp\ccIBBYKM.o
+ .text          0x0000000000000000        0x0 C:\Users\chris\AppData\Local\Temp\ccKbezST.o
 
 .text%z36       0x0000000000000000        0x0
  .text          0x0000000000000000        0x0 c:/program files/microchip/xc32/v4.45/bin/bin/../../lib/gcc/pic32c/8.3.1/thumb/v8-m.base/nofp/crti.o

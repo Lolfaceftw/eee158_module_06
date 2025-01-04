@@ -29,6 +29,8 @@
 #define HOME_KEY 0x1B    // ASCII for Home key
 #define CTRL_E 0x05     // ASCII for CTRL+E
 
+int ready_to_exit = 0;
+int emergency_stop = 0;
 static const char banner_msg[] =
         "\033[1;1H"
         "+--------------------------------------------------------------------+\r\n"
@@ -127,7 +129,12 @@ static void updateBlinkSetting(prog_state_t *ps, bool increase) {
     ps->tx_desc[1].len = strlen(blinkSettingStrings[currentSetting]);
 
     platform_usart_cdc_tx_async(ps->tx_desc, 2);
-
+    // Still doesn't fix the problem!
+    platform_blink_modify();
+    /* Commented out.
+     * Reason: Emergency Stop does not respond to OFF and ON States.
+     */
+    /*
     if (currentSetting == OFF) {
         PORT_SEC_REGS->GROUP[0].PORT_OUTCLR |= (1 << 15); // Turn off LED
     } else if (currentSetting == ON) {
@@ -135,6 +142,7 @@ static void updateBlinkSetting(prog_state_t *ps, bool increase) {
     } else {
         platform_blink_modify(); // Start blinking with new setting
     }
+     */
 }
 
 /*
@@ -149,6 +157,9 @@ static const char ESC_SEQ_BUTTON_POS[] = "\033[11;1H"; // Position cursor at but
 static const char BUTTON_PRESSED[] = "On-board button: [Pressed] ";
 static const char BUTTON_RELEASED[] = "On-board button: [Released]";
 static char current_banner[sizeof (banner_msg)];
+static const char EMERGENCY[] = "\033[13;1H";
+static const char EMERGENCY_ON[] = "EMERGENCY MODE ON\r\n";
+int i = 0;
 
 static void prog_loop_one(prog_state_t *ps) {
     uint16_t a = 0, b = 0, c = 0;
@@ -171,6 +182,12 @@ static void prog_loop_one(prog_state_t *ps) {
             ps->tx_desc[1].buf = BUTTON_PRESSED;
             ps->tx_desc[1].len = sizeof (BUTTON_PRESSED) - 1;
             platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
+            if (ready_to_exit == 1){
+                emergency_stop = 0;
+                ready_to_exit = 0;
+                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR |= (1 << 1);
+                
+            }
         } else if ((a & PLATFORM_PB_ONBOARD_RELEASE) != 0) {
             ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
             ps->tx_desc[0].len = sizeof (ESC_SEQ_BUTTON_POS) - 1;

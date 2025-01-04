@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
-  <executable name="dist/default/debug/eee158_mp2_new.X.debug.elf">
+  <executable name="dist/default/debug/EEE158_MP2.debug.elf">
     <memory name="program">
       <units>bytes</units>
       <length>262144</length>
-      <used>9536</used>
-      <free>252608</free>
+      <used>10744</used>
+      <free>251400</free>
     </memory>
     <memory name="data">
       <units>bytes</units>
       <length>32768</length>
-      <used>871</used>
-      <free>31897</free>
+      <used>900</used>
+      <free>31868</free>
     </memory>
   </executable>
 </project>
