@@ -94,13 +94,21 @@ void PB_init(void) {
     EIC_SEC_REGS->EIC_DEBOUNCEN |= (1 << 2);
     EIC_SEC_REGS->EIC_CONFIG0 &= ~((uint32_t) (0xF) << 8);
     EIC_SEC_REGS->EIC_CONFIG0 |= ((uint32_t) (0xB) << 8);
-
+    EIC_SEC_REGS -> EIC_CONFIG0 |= (0x3 << 28); // Both Edge Detection
+    EIC_SEC_REGS -> EIC_CONFIG0 |= (1 << 31); // Filter Enabled
+        EIC_SEC_REGS -> EIC_DEBOUNCEN |= (1 << 7); // Debounce Enabled
+    EIC_SEC_REGS -> EIC_INTENSET |= (1 << 7); // Enable EIC
     /*
      * NOTE: Even though interrupts are enabled here, global interrupts
      *       still need to be enabled via NVIC.
      */
-    EIC_SEC_REGS->EIC_INTENSET = 0x00000004;
+    EIC_SEC_REGS->EIC_INTENSET |= (1 << 2);
     return;
+}
+
+void PA18_EIC_Init(void){
+    
+
 }
 
 /*
@@ -117,10 +125,28 @@ void NVIC_init(void) {
     __DMB();
     __enable_irq();
     NVIC_SetPriority(EIC_EXTINT_2_IRQn, 3);
+    NVIC_SetPriority(EIC_EXTINT_7_IRQn, 3);
     NVIC_SetPriority(SysTick_IRQn, 3);
     NVIC_EnableIRQ(EIC_EXTINT_2_IRQn);
+    NVIC_EnableIRQ(EIC_EXTINT_7_IRQn);
     NVIC_EnableIRQ(SysTick_IRQn);
     return;
+}
+int toggle = 0;
+void __attribute__((interrupt())) EIC_EXTINT_7_Handler(void) {
+    EIC_SEC_REGS->EIC_INTFLAG |= (1 << 7);
+    asm("nop");
+    if (toggle == 0){
+        // Wait 4 seconds
+        // Wait onboard push button
+        PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 1); // Turn PA 01 Off
+        toggle = 1;
+    } else if (toggle == 1) {
+        // Ignore all commands
+        PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 1); // Turn PA 01 Off
+        toggle = 0;
+    }
+    
 }
 
 #endif EIC_H

@@ -185,6 +185,10 @@ static void Emergency_Pins_Init(void){
     PORT_SEC_REGS -> GROUP[0].PORT_PMUX[9] |= (0x0 << 0); // Enable the A Peripheral for EXTINT[7]
 }   
 
+static void PA1_Debug_Init(void){
+    PORT_SEC_REGS -> GROUP[0].PORT_DIRSET |= (1 << 1); // Configure as output
+    PORT_SEC_REGS -> GROUP[0].PORT_OUTSET |= (1 << 1); // Make PA 01 Active-HI
+}
 // Initialize the platform
 
 void platform_init(void) {
@@ -198,7 +202,9 @@ void platform_init(void) {
     // Regular initialization
     TC0_Init();
     PB_init();
+    PA1_Debug_Init();
     Emergency_Pins_Init();
+    PA18_EIC_Init();
     blink_init();
     platform_usart_init();
 
