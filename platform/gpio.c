@@ -35,6 +35,10 @@
 
 int top = 23438;
 // Initializers defined in other platform_*.c files
+extern ignore_all;
+extern ignore_init;
+extern e_stop;
+extern absent;
 extern void platform_systick_init(void);
 extern void platform_usart_init(void);
 extern void platform_usart_tick_handler(const platform_timespec_t *tick);
@@ -90,48 +94,65 @@ int read_count() {
 
 }
 
+volatile int x = 0;
+volatile int y = 0;
+volatile int z = 0;
+
 void platform_blink_modify(void) {
-    // Start the timer if it's not running
-    /*if (!(TC0_REGS->COUNT16.TC_STATUS & TC_STATUS_STOP_Msk)) {
-        TC0_REGS->COUNT16.TC_CTRLA |= TC_CTRLA_ENABLE_Msk;
-    }*/
-    
+    if (e_stop == 1){
+        PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
+    } else if (absent == 1){
+        if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.15){
+            PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
+        } else {
+            PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
+        }
+    } else if (ignore_all == 0){
+        PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
+    }
     switch (currentSetting) {
         case OFF:
-            PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
+//            PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
             break;
         case SLOW:
-            TC0_REGS -> COUNT16.TC_CC[0] = 23438;
-            while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
-            if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.9) {
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
-            }
-            if (read_count() > TC0_REGS -> COUNT16.TC_CC[0]*0.9) {
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
-            }
+
+//            TC0_REGS -> COUNT16.TC_CC[0] = 23438;
+//            while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
+//            if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.9) {
+//                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
+//            }
+//            if (read_count() > TC0_REGS -> COUNT16.TC_CC[0]*0.9) {
+//                PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
+//            }
             break;
         case MEDIUM:
-            TC0_REGS -> COUNT16.TC_CC[0] = 11719;
-            while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
-            if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.8) {
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
-            }
-            if (read_count() > TC0_REGS -> COUNT16.TC_CC[0]*0.8) {
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
-            }
+//            if (y == 0) {
+//                TC0_REGS -> COUNT16.TC_CC[0] = 11719;
+//                y = 1;
+//            }
+//            while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
+//            if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.8) {
+//                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
+//            }
+//            if (read_count() > TC0_REGS -> COUNT16.TC_CC[0]*0.8) {
+//                PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
+//            }
             break;
         case FAST:
-            TC0_REGS -> COUNT16.TC_CC[0] = 7032;
-            while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
-            if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.5) {
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
-            }
-            if (read_count() > TC0_REGS -> COUNT16.TC_CC[0]*0.5) {
-                PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
-            }
+//            if (z == 0) {
+//                TC0_REGS -> COUNT16.TC_CC[0] = 7032;
+//                z = 1;
+//            }
+//            while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
+//            if (read_count() < TC0_REGS -> COUNT16.TC_CC[0]*0.5) {
+//                PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 15);
+//            }
+//            if (read_count() > TC0_REGS -> COUNT16.TC_CC[0]*0.5) {
+//                PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
+//            }
             break;
         case ON:
-            PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
+//            PORT_SEC_REGS -> GROUP[0].PORT_OUTSET = (1 << 15);
             break;
     }
 
@@ -146,6 +167,7 @@ uint16_t platform_pb_get_event(void) {
     pb_press_mask = 0;
     return cache;
 }
+
 /*
  * Per the datasheet for the PIC32CM5164LS00048, PA23 belongs to EXTINT[2],
  * which in turn is Peripheral Function A. The corresponding Interrupt ReQuest
@@ -172,20 +194,20 @@ void __attribute__((used, interrupt())) EIC_EXTINT_2_Handler(void) {
  * PA 19 is configured as output.
  * PA 18 is configured as input at pull-down (DIR: 0 | INEN: 1 | PULLEN: 1 | OUT: 0)
  */
-static void Emergency_Pins_Init(void){
+static void Emergency_Pins_Init(void) {
     // For PA 19
     PORT_SEC_REGS -> GROUP[0].PORT_PINCFG[19] |= (1 << 1); // INEN: 1 | No interrupt needed.
     PORT_SEC_REGS -> GROUP[0].PORT_DIRSET |= (1 << 19); // Configure as output.
     PORT_SEC_REGS -> GROUP[0].PORT_OUTSET |= (1 << 19); // Configure as active-HI.
-    
+
     // For PA 18
     PORT_SEC_REGS -> GROUP[0].PORT_PINCFG[18] |= (0x7 << 0); // INEN: 1 | PULLEN: 1 | PMUXEN: 1
     PORT_SEC_REGS -> GROUP[0].PORT_DIRSET |= (0 << 18); // Configure as input.
     PORT_SEC_REGS -> GROUP[0].PORT_OUTSET |= (0 << 18); // Configure as pull-down.
     PORT_SEC_REGS -> GROUP[0].PORT_PMUX[9] |= (0x0 << 0); // Enable the A Peripheral for EXTINT[7]
-}   
+}
 
-static void PA1_Debug_Init(void){
+static void PA1_Debug_Init(void) {
     PORT_SEC_REGS -> GROUP[0].PORT_DIRSET |= (1 << 1); // Configure as output
     PORT_SEC_REGS -> GROUP[0].PORT_OUTSET |= (1 << 1); // Make PA 01 Active-HI
 }
@@ -201,7 +223,9 @@ void platform_init(void) {
 
     // Regular initialization
     TC0_Init();
+    TCC0_Init();
     TCC3_Init();
+
     PB_init();
     PA1_Debug_Init();
     Emergency_Pins_Init();

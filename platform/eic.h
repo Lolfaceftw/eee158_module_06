@@ -1,7 +1,10 @@
 #ifndef EIC_H
 #define EIC_H
 extern ignore_all;
+extern toggle;
 extern reset_timer;
+extern e_stop;
+
 /*
  * Configure the EIC peripheral
  * 
@@ -134,7 +137,6 @@ void NVIC_init(void) {
     return;
 }
 
-volatile int toggle = 0;
 void __attribute__((interrupt())) EIC_EXTINT_7_Handler(void) {
     EIC_SEC_REGS->EIC_INTFLAG |= (1 << 7);
     asm("nop");
@@ -144,6 +146,7 @@ void __attribute__((interrupt())) EIC_EXTINT_7_Handler(void) {
         reset_timer = 1;
         PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 1); // Turn PA 01 Off
         toggle = 1;
+        e_stop = 1;
     } else if (toggle == 1) {
         // Wait 4 seconds
         reset_timer = 0;

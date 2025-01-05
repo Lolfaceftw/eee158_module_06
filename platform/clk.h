@@ -87,7 +87,8 @@ void TC0_Init(void) {
     // Setting up the TC 0 -> CTRLA Register
     TC0_REGS -> COUNT16.TC_CTRLA = (1); // Software Reset; Bit 0
     while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1));
-
+    TC0_REGS -> COUNT16.TC_CC[0] = 23438*2;
+    while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 6));
     TC0_REGS -> COUNT16.TC_CTRLA = (0x0 << 2); // Set to 16 bit mode; Bit[3:2].
     TC0_REGS -> COUNT16.TC_CTRLA = (0x1 << 4); // Reset counter on next prescaler clock Bit[5:4]]
     TC0_REGS -> COUNT16.TC_CTRLA = (0x7 << 8); // Prescaler Factor: 1024 Bit[10:8]]
@@ -99,8 +100,8 @@ void TC0_Init(void) {
 }
 
 void TCC3_Init(void) {
-    GCLK_REGS -> GCLK_PCHCTRL[27] = 0x00000040;
-    while ((GCLK_REGS -> GCLK_PCHCTRL [27] & 0x00000040) == 0); // Wait for synchronization
+    GCLK_REGS -> GCLK_PCHCTRL[27] |= (1 << 6);
+    while ((GCLK_REGS -> GCLK_PCHCTRL [27] & (1 << 6)) == 0); // Wait for synchronization
 
     /* Reset TCC */
     TCC3_REGS->TCC_CTRLA |= 0x01; // Set SWRST bit to 1 to reset
@@ -117,9 +118,37 @@ void TCC3_Init(void) {
 
     /* Configure duty cycle values */
 
-
+    TCC3_REGS->TCC_PER = 93750; // 4 seconds
+    while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 7));
     /* TCC enable */
     TCC3_REGS->TCC_CTRLA |= (1 << 1); // Enables TCC
     while (TCC3_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
+}
+
+void TCC0_Init(void) {
+    GCLK_REGS -> GCLK_PCHCTRL[25] |= (1 << 6);
+    while ((GCLK_REGS -> GCLK_PCHCTRL [25] & (1 << 6)) == 0); // Wait for synchronization
+
+    /* Reset TCC */
+    TCC0_REGS->TCC_CTRLA |= 0x01; // Set SWRST bit to 1 to reset
+    while (TCC0_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
+
+    /* Clock Prescaler and Mode */
+    TCC0_REGS->TCC_CTRLA |= (1 << 12) | (7 << 8); // Precsync = PRESC | Prescaler = 1024
+    while (TCC0_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
+
+    TCC0_REGS->TCC_WEXCTRL |= TCC_WEXCTRL_OTMX(0UL); // Default configuration
+    TCC0_REGS->TCC_WAVE |= (2 << 0) | (0 << 4) | (1 << 17) | (1 << 16) | (1 << 19); // 0x2 NPWM Normal PWM PER TOP/Zero or Single slope PWM
+    while (TCC0_REGS->TCC_SYNCBUSY & ~(1 << 6)); // Wait for synchronization
+    // RAMP 1 operation (Polarity 1) - bit 16, set at CCx, clear at TOP 
+
+    /* Configure duty cycle values */
+
+    TCC0_REGS->TCC_PER = 1054688; // 45 seconds
+    //TCC0_REGS->TCC_PER = 70313; // 3 seconds
+    while ((TCC0_REGS -> TCC_SYNCBUSY) & (1 << 7));
+    /* TCC enable */
+    TCC0_REGS->TCC_CTRLA |= (1 << 1); // Enables TCC
+    while (TCC0_REGS->TCC_SYNCBUSY & ~(1 << 0)); // Wait for synchronization
 }
 #endif CLK_H

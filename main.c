@@ -32,24 +32,32 @@
 volatile int ignore_all = 0;
 volatile int reset_timer = 1;
 volatile int ready_to_exit = 0;
-int emergency_stop = 0;
+volatile int present = 1;
+volatile int toggle = 0;
+volatile int e_stop = 0;
 
 int tcc3_read(void) {
     TCC3_REGS -> TCC_CTRLBSET |= (0x4 << 5);
-    while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 4));
+    while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 4) == 1);
     return TCC3_REGS -> TCC_COUNT;
 }
 
-static const char banner_msg[] =
+int tcc0_read(void) {
+    TCC0_REGS -> TCC_CTRLBSET |= (0x4 << 5);
+    while ((TCC0_REGS -> TCC_SYNCBUSY) & (1 << 4) == 1);
+    return TCC0_REGS -> TCC_COUNT;
+}
+
+static char banner_msg[] =
         "\033[1;1H"
         "+--------------------------------------------------------------------+\r\n"
         "| EEE 158: Electrical and Electronics Engineering Laboratory V       |\r\n"
         "|          Academic Year 2024-2025, Semester 1                       |\r\n"
         "|                                                                    |\r\n"
-        "| Solution: Graded Exercise                                          |\r\n"
+        "| Solution: Machine Problem 2                                        |\r\n"
         "|                                                                    |\r\n"
-        "| Author:  EEE 158 Handlers (Almario, de Villa, Nierva, Sison, Tuso) |\r\n"
-        "| Date:    21 Oct 2024                                               |\r\n"
+        "| Author:  Christian Klein C. Ramos // SN 2022 03126                 |\r\n"
+        "| Date:    03 Jan 2025                                               |\r\n"
         "+--------------------------------------------------------------------+\r\n"
         "\r\n";
 static const char init_banner_msg[] =
@@ -58,14 +66,18 @@ static const char init_banner_msg[] =
         "| EEE 158: Electrical and Electronics Engineering Laboratory V       |\r\n"
         "|          Academic Year 2024-2025, Semester 1                       |\r\n"
         "|                                                                    |\r\n"
-        "| Solution: Graded Exercise                                          |\r\n"
+        "| Solution: Machine Problem 2                                        |\r\n"
         "|                                                                    |\r\n"
-        "| Author:  EEE 158 Handlers (Almario, de Villa, Nierva, Sison, Tuso) |\r\n"
-        "| Date:    21 Oct 2024                                               |\r\n"
+        "| Author:  Christian Klein C. Ramos // SN 2022 03126                 |\r\n"
+        "| Date:    03 Jan 2025                                               |\r\n"
         "+--------------------------------------------------------------------+\r\n"
         "\r\n"
-        "On-board button: [Released]\r\n"
-        "Blink Setting: [   OFF  ]\r\n";
+        "System Status: [ ACTIVE ]\r\n"
+        "Motor Direction: [ STOPPED ]\r\n"
+        "Speed: [ 0% ]\r\n";
+
+static const char blank[] =
+        "\033[2J";
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -140,18 +152,6 @@ static void updateBlinkSetting(prog_state_t *ps, bool increase) {
     platform_usart_cdc_tx_async(ps->tx_desc, 2);
     // Still doesn't fix the problem!
     platform_blink_modify();
-    /* Commented out.
-     * Reason: Emergency Stop does not respond to OFF and ON States.
-     */
-    /*
-    if (currentSetting == OFF) {
-        PORT_SEC_REGS->GROUP[0].PORT_OUTCLR |= (1 << 15); // Turn off LED
-    } else if (currentSetting == ON) {
-        PORT_SEC_REGS->GROUP[0].PORT_OUTSET |= (1 << 15);
-    } else {
-        platform_blink_modify(); // Start blinking with new setting
-    }
-     */
 }
 
 /*
@@ -169,47 +169,72 @@ static char current_banner[sizeof (banner_msg)];
 static const char EMERGENCY[] = "\033[13;1H";
 static const char EMERGENCY_ON[] = "EMERGENCY MODE ON\r\n";
 int i = 0;
-
+volatile int ignore_init = 1;
+volatile int valid_input = 0;
+char h[] = "test";
+volatile int absent = 0;
 static void prog_loop_one(prog_state_t *ps) {
     uint16_t a = 0, b = 0, c = 0;
 
     // Do one iteration of the platform event loop first.
     platform_do_loop_one();
     platform_blink_modify();
+
+    if (valid_input == 1) {
+        TCC0_REGS -> TCC_COUNT = 0; // Reset counter to zero.
+        while ((TCC0_REGS -> TCC_SYNCBUSY) & (1 << 4)); // This register is write-synchronized.
+        valid_input = 0;
+    }
+    if (tcc0_read() >= TCC0_REGS->TCC_PER || ((ps -> rx_desc_buf[0] == 0x1B) && (ps -> rx_desc_buf[1] == 0x4F) && (ps -> rx_desc_buf[2] == 0x77))) {
+        ps->tx_desc[0].buf = blank;
+        ps->tx_desc[0].len = sizeof (blank) - 1;
+        platform_usart_cdc_tx_async(&ps->tx_desc[0], 1);
+        absent = 1;
+        //PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 1);
+    }
     // Print out the banner
     if (init == 0) {
         ps->tx_desc[0].buf = init_banner_msg;
         ps->tx_desc[0].len = sizeof (init_banner_msg) - 1;
         platform_usart_cdc_tx_async(&ps->tx_desc[0], 1);
+        ps->tx_desc[1].buf = h;
+        ps->tx_desc[1].len = sizeof (h) - 1;
+
         init = 1;
     }
-    if (ignore_all == 1) {
-        //for(;;){}
+    if (ignore_all == 1 || ignore_init == 1) {
         // Something from the UART?
         if (ps->rx_desc.compl_type == PLATFORM_USART_RX_COMPL_DATA) {
 
             char received_char = ps->rx_desc_buf[0];
             if (received_char == CTRL_E || (received_char == 0x1B && ps -> rx_desc_buf[2] == 0x48)) {
-
                 ps->flags |= PROG_FLAG_BANNER_PENDING;
+                ignore_init = 0;
+                absent = 0;
+                valid_input = 1;
+                e_stop = 0;
             } else {
+                valid_input = 0;
                 ps->flags |= PROG_FLAG_UPDATE_PENDING;
             }
             ps->rx_desc_blen = ps->rx_desc.compl_info.data_len;
         }
-    } if (ignore_all == 0 || ready_to_exit == 1) {
+    }
+    if ((ignore_all == 0 || ready_to_exit == 1) && ignore_init == 0) {
 
         // Something happened to the pushbutton?
         if ((a = platform_pb_get_event()) != 0) {
+            valid_input = 1;
             if ((a & PLATFORM_PB_ONBOARD_PRESS) != 0) {
                 ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
                 ps->tx_desc[0].len = sizeof (ESC_SEQ_BUTTON_POS) - 1;
                 ps->tx_desc[1].buf = BUTTON_PRESSED;
                 ps->tx_desc[1].len = sizeof (BUTTON_PRESSED) - 1;
                 platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
-                if (ready_to_exit == 1){
+                if (ready_to_exit == 1) {
                     ready_to_exit = 0;
                     ignore_all = 0;
+                    e_stop = 0;
                 }
             } else if ((a & PLATFORM_PB_ONBOARD_RELEASE) != 0) {
                 ps->tx_desc[0].buf = ESC_SEQ_BUTTON_POS;
@@ -225,6 +250,8 @@ static void prog_loop_one(prog_state_t *ps) {
 
             if (received_char == CTRL_E || (received_char == 0x1B && ps -> rx_desc_buf[2] == 0x48)) {
                 ps->flags |= PROG_FLAG_BANNER_PENDING;
+                valid_input = 1;
+                absent = 0;
             } else {
                 ps->flags |= PROG_FLAG_UPDATE_PENDING;
             }
@@ -233,18 +260,13 @@ static void prog_loop_one(prog_state_t *ps) {
     }
 
     if (reset_timer == 0) {
-        TCC3_REGS->TCC_PER = 93750; // Set the period value
-        while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 7));
 
         if (tcc3_read() >= TCC3_REGS -> TCC_PER) {
             PORT_SEC_REGS -> GROUP[0].PORT_OUTCLR = (1 << 1);
             ready_to_exit = 1;
         }
-    } else {
-        TCC3_REGS -> TCC_CTRLBSET |= (0x1 << 5);
-        while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 2)); // Wait for CMD Synchronization.
-        while ((TCC3_REGS -> TCC_CTRLBSET) |= (0 << 5)); // Wait for CMD read back as zero.
 
+    } else {
         TCC3_REGS -> TCC_COUNT = 0; // Reset counter to zero.
         while ((TCC3_REGS -> TCC_SYNCBUSY) & (1 << 4)); // This register is write-synchronized.
     }
@@ -261,9 +283,10 @@ static void prog_loop_one(prog_state_t *ps) {
 
         if ((ps->flags & PROG_FLAG_GEN_COMPLETE) == 0) {
 
-
             ps->tx_desc[0].buf = banner_msg;
             ps->tx_desc[0].len = sizeof (banner_msg) - 1;
+            platform_usart_cdc_tx_async(&ps->tx_desc[0], 1);
+
             ps->flags |= PROG_FLAG_GEN_COMPLETE;
             // Reset receive buffer immediately
             ps->rx_desc.compl_type = PLATFORM_USART_RX_COMPL_NONE;
@@ -285,10 +308,37 @@ static void prog_loop_one(prog_state_t *ps) {
 
         if ((ps->flags & PROG_FLAG_GEN_COMPLETE) == 0) {
             // Message has not been generated.
-
             // Echo back the received packet as a hex dump.
-            if (ignore_all == 0) {
+            if (ignore_all == 1) {
+                ps->tx_desc[0].buf = "\033[11;1H";
+                ps->tx_desc[0].len = sizeof ("\033[11;1H") - 1;
+                ps->tx_desc[1].buf = "E-STOP";
+                ps->tx_desc[1].len = sizeof ("E-STOP") - 1;
+
+                platform_usart_cdc_tx_async(&ps->tx_desc[0], 2);
+            }
+            memset(ps->tx_buf, 0, sizeof (ps->tx_buf));
+            if (ps->rx_desc_blen > 0) {
+                ps->tx_desc[1].len = 0;
+                ps->tx_desc[1].buf = ps->tx_buf;
+                for (a = 0, c = 0; a < ps->rx_desc_blen && c < sizeof (ps->tx_buf) - 1; ++a) {
+                    b = snprintf(ps->tx_buf + c,
+                            sizeof (ps->tx_buf) - c - 1,
+                            "%02X ", (char) (ps->rx_desc_buf[a] & 0x00FF)
+                            );
+                    c += b;
+                }
+                ps->tx_desc[1].len = c;
+            } else {
+                ps->tx_desc[1].len = 7;
+                ps->tx_desc[1].buf = "<None> ";
+            }
+            // Echo back the received packet as a hex dump.
+            if (ignore_all == 0 && ignore_init == 0) {
                 char received_char = ps->rx_desc_buf[0];
+                if (received_char == 0x09) {
+                    valid_input = 1;
+                }
                 if (received_char == '\033') {
                     // Escape sequence detected, could be an arrow key
                     if (ps->rx_desc_buf[1] == '[') {
@@ -296,18 +346,22 @@ static void prog_loop_one(prog_state_t *ps) {
                             case 'D': // Left arrow
                                 TC0_REGS -> COUNT16.TC_COUNT = 0;
                                 updateBlinkSetting(ps, false);
+                                valid_input = 1;
                                 break;
                             case 'C': // Right arrow
                                 TC0_REGS -> COUNT16.TC_COUNT = 0;
                                 updateBlinkSetting(ps, true);
+                                valid_input = 1;
                                 break;
                         }
                     }
                 } else if (received_char == 0x61 || received_char == 0x41) {
                     TC0_REGS -> COUNT16.TC_COUNT = 0;
                     while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 4));
+                    valid_input = 1;
                     updateBlinkSetting(ps, false);
                 } else if (received_char == 'D' || received_char == 'd') {
+                    valid_input = 1;
                     TC0_REGS -> COUNT16.TC_COUNT = 0;
                     while (TC0_REGS -> COUNT16.TC_SYNCBUSY & (1 << 4));
                     updateBlinkSetting(ps, true);
